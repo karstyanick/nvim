@@ -1,7 +1,17 @@
-require('lspconfig').ts_ls.setup {}
 vim.lsp.enable 'pyright'
 vim.lsp.enable 'gopls'
 vim.lsp.enable 'svelte'
+vim.lsp.enable 'eslint'
+vim.lsp.enable 'ts_ls'
+
+require('lspconfig').eslint.setup {
+  settings = {
+    codeActionOnSave = {
+      enable = false,
+    },
+    run = 'manual',
+  },
+}
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
