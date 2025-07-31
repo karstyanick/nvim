@@ -390,10 +390,8 @@ require('lazy').setup({
     },
     config = function()
       require('nvim-tree').setup {
-        opts = {
-          filters = {
-            exclude = 'filters.git_ignored',
-          },
+        filters = {
+          git_ignored = false,
         },
       }
       vim.keymap.set('n', '<leader>tt', ':NvimTreeToggle<CR>', { desc = '[T]ree [T]oggle' })
