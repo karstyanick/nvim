@@ -83,8 +83,8 @@ vim.opt.confirm = true
 --  See `:help vim.keymap.set()`
 vim.keymap.set('n', '<C-d>', '<C-d>zz')
 vim.keymap.set('n', '<C-u>', '<C-u>zz')
-vim.keymap.set('n', '<M-u>', '10kzz')
-vim.keymap.set('n', '<M-d>', '10jzz')
+vim.keymap.set('n', '<M-u>', '10k')
+vim.keymap.set('n', '<M-d>', '10j')
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
@@ -1135,23 +1135,22 @@ require('lazy').setup({
 
       -- Your on_highlights function now lives with the other options
       on_highlights = function(hl, c)
-        local white = '#FFFFFF' -- Define your color once
         -- Override the background color for bufferline
         hl.BufferLineFill = {
           bg = '#49567a',
         }
         -- 3. Make all separators white to blend them into the background
         hl.BufferLineSeparator = {
-          bg = c.bg_dark,
+          bg = '#1C1E2B',
           fg = '#49567a',
         }
         hl.BufferLineSeparatorVisible = {
-          bg = c.bg_dark,
+          bg = '#222435',
           fg = '#49567a',
         }
         -- This one styles the separator next to the *selected* tab
         hl.BufferLineSeparatorSelected = {
-          bg = c.bg_dark,
+          bg = c.bg,
           fg = '#49567a',
         }
       end,
