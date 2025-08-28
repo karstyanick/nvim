@@ -91,10 +91,13 @@ vim.opt.confirm = true
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
-vim.keymap.set('n', '<C-d>', '<C-d>zz')
-vim.keymap.set('n', '<C-u>', '<C-u>zz')
-vim.keymap.set('n', '<M-u>', '10k')
-vim.keymap.set('n', '<M-d>', '10j')
+vim.keymap.set({ 'n', 'x' }, '<C-d>', '<C-d>zz')
+vim.keymap.set({ 'n', 'x' }, '<C-u>', '<C-u>zz')
+vim.keymap.set({ 'n', 'x' }, '<M-u>', '10k')
+vim.keymap.set({ 'n', 'x' }, '<M-d>', '10j')
+-- Delete buffer without closing window
+vim.keymap.set('n', '<leader>bd', ':bp | vsp | bn | bd<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>bD', ':%bd<CR>', { noremap = true, silent = true })
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
@@ -320,6 +323,23 @@ require('lazy').setup({
     },
   },
   {
+    'f-person/git-blame.nvim',
+    -- load the plugin at startup
+    event = 'VeryLazy',
+    -- Because of the keys part, you will be lazy loading this plugin.
+    -- The plugin will only load once one of the keys is used.
+    -- If you want to load the plugin at startup, add something like event = "VeryLazy",
+    -- or lazy = false. One of both options will work.
+    opts = {
+      -- your configuration comes here
+      -- for example
+      enabled = true, -- if you want to enable the plugin
+      message_template = ' <summary> • <date> • <author> • <<sha>>', -- template for the blame message, check the Message template section for more options
+      date_format = '%m-%d-%Y %H:%M:%S', -- template for the date, check Date format section for more options
+      virtual_text_column = 1, -- virtual text start column, check Start virtual text at column section for more options
+    },
+  },
+  {
     'goolord/alpha-nvim',
     opts = function()
       -- Use the dashboard theme from alpha-nvim.
@@ -403,8 +423,28 @@ require('lazy').setup({
         filters = {
           git_ignored = false,
         },
+        view = {
+          width = 40,
+          adaptive_size = true,
+        },
       }
-      vim.keymap.set('n', '<leader>tt', ':NvimTreeToggle<CR>', { desc = '[T]ree [T]oggle' })
+
+      vim.keymap.set('n', '<leader>tt', function()
+        require('nvim-tree.api').tree.toggle { focus = true, find_file = true }
+      end, { desc = 'Toggle NvimTree' })
+
+      local api = require 'nvim-tree.api'
+
+      vim.api.nvim_create_autocmd('BufEnter', {
+        nested = true,
+        callback = function()
+          if vim.fn.bufname() == 'NvimTree_1' then
+            return
+          end
+
+          api.tree.find_file { buf = vim.fn.bufnr() }
+        end,
+      })
     end,
   },
   {
@@ -448,54 +488,20 @@ require('lazy').setup({
       end,
     },
   },
-  {
-    'mfussenegger/nvim-dap',
-    lazy = true, -- only load when you invoke it
-    config = function()
-      local dap = require 'dap'
 
-      dap.adapters['pwa-node'] = {
-        type = 'server',
-        host = 'localhost',
-        port = '${port}',
-        executable = {
-          command = 'node',
-          -- 💀 Make sure to update this path to point to your installation
-          args = { '/home/yanick/bin/js-debug/src/dapDebugServer.js', '${port}' },
-        },
-      }
-      dap.configurations.typescript = {
-        {
-          type = 'pwa-node',
-          request = 'launch',
-          name = 'Launch TS',
-          cwd = '${workspaceFolder}', -- project root
-          program = '${workspaceFolder}/src/index.ts',
-          runtimeExecutable = 'node',
-          runtimeArgs = { '-r', 'ts-node/register' },
-          sourceMaps = true,
-          protocol = 'inspector',
-          skipFiles = { '<node_internals>/**', 'node_modules/**' },
-        },
-      }
-      -- your own keymaps to control DAP
-      vim.keymap.set('n', '<leader>dc', dap.continue, { desc = 'DAP Continue' })
-      vim.keymap.set('n', '<leader>dr', dap.repl.open, { desc = 'DAP REPL' })
-      vim.keymap.set('n', '<leader>db', dap.toggle_breakpoint, { desc = 'Toggle Breakpoint' })
-      vim.keymap.set('n', '<leader>dB', function()
-        dap.set_breakpoint(vim.fn.input 'Breakpoint condition: ')
-      end, { desc = 'Conditional Breakpoint' })
-      vim.keymap.set('n', '<leader>di', dap.step_into, { desc = 'Step Into' })
-      vim.keymap.set('n', '<leader>do', dap.step_over, { desc = 'Step Over' })
-      vim.keymap.set('n', '<leader>dO', dap.step_out, { desc = 'Step Out' })
-    end,
+  {
+    'microsoft/vscode-js-debug',
+    version = '1.x', -- Pin to a stable version
+    build = 'npm install --legacy-peer-deps && npx gulp dapDebugServer && mv dist out',
   },
+  -- 2. The UI: Also configured as a dependency.
   {
     'rcarriga/nvim-dap-ui',
-    dependencies = { 'mfussenegger/nvim-dap', 'nvim-neotest/nvim-nio' },
+    dependencies = { 'nvim-neotest/nvim-nio' },
     config = function()
-      local dap, dapui = require 'dap', require 'dapui'
+      local dapui = require 'dapui'
       dapui.setup()
+      local dap = require 'dap'
       dap.listeners.before.attach.dapui_config = function()
         dapui.open()
       end
@@ -508,6 +514,91 @@ require('lazy').setup({
       dap.listeners.before.event_exited.dapui_config = function()
         dapui.close()
       end
+    end,
+  },
+  {
+    'mfussenegger/nvim-dap',
+    -- All other DAP plugins are now explicit dependencies of nvim-dap
+    dependencies = {},
+
+    -- This is the config for the MAIN 'nvim-dap' plugin.
+    -- It will run AFTER all the dependency configs above have finished.
+    config = function()
+      local dap = require 'dap'
+
+      dap.adapters['pwa-node'] = {
+        type = 'server',
+        host = 'localhost',
+        port = '${port}',
+        executable = {
+          command = 'node',
+          args = {
+            vim.fn.stdpath 'data' .. '/lazy/vscode-js-debug/out/src/dapDebugServer.js',
+            '${port}',
+          },
+        },
+      }
+
+      local js_based_languages = { 'typescript', 'javascript', 'typescriptreact', 'javascriptreact' }
+      for _, language in ipairs(js_based_languages) do
+        dap.configurations[language] = {
+          {
+            name = 'Attach Default',
+            type = 'pwa-node',
+            request = 'attach',
+            processId = require('dap.utils').pick_process,
+            skipFiles = { '<node_internals>/**', 'node_modules/**' },
+            cwd = '${workspaceFolder}',
+            sourceMaps = true,
+          },
+          {
+            name = 'Attach by Port (9229)',
+            type = 'pwa-node',
+            request = 'attach',
+            port = 9229,
+            sourceMaps = true,
+            -- This is the final and most critical part for path mapping
+            webRoot = vim.fn.getcwd(),
+            localRoot = vim.fn.getcwd(), -- It doesn't hurt to have both
+            skipFiles = { '<node_internals>/**', 'node_modules/**' },
+          },
+          {
+            name = 'Attach (VS Code Compatible)',
+            -- The key change is here:
+            type = 'node',
+            request = 'attach',
+            port = 9229,
+            -- Add the rest of the keys from your working launch.json
+            protocol = 'inspector',
+            restart = true,
+            timeout = 10000,
+            -- We still provide path mapping hints, as they are good practice
+            sourceMaps = true,
+            cwd = vim.fn.getcwd(),
+            webRoot = vim.fn.getcwd(),
+            localRoot = vim.fn.getcwd(),
+          },
+          {
+            type = 'pwa-node',
+            request = 'launch',
+            name = 'Launch file',
+            program = '${file}',
+            cwd = '${workspaceFolder}',
+          },
+        }
+      end
+
+      -- Your keymaps are fine here
+      vim.keymap.set('n', '<leader>dc', dap.continue, { desc = 'DAP Continue / Start' })
+      vim.keymap.set('n', '<leader>dr', dap.repl.open, { desc = 'DAP REPL' })
+      vim.keymap.set('n', '<leader>db', dap.toggle_breakpoint, { desc = 'Toggle Breakpoint' })
+      vim.keymap.set('n', '<leader>dB', function()
+        dap.set_breakpoint(vim.fn.input 'Breakpoint condition: ')
+      end, { desc = 'Conditional Breakpoint' })
+      vim.keymap.set('n', '<leader>di', dap.step_into, { desc = 'Step Into' })
+      vim.keymap.set('n', '<leader>do', dap.step_over, { desc = 'Step Over' })
+      vim.keymap.set('n', '<leader>dO', dap.step_out, { desc = 'Step Out' })
+      vim.keymap.set('n', '<leader>dq', dap.disconnect, { desc = '[d]ap [q]uit' })
     end,
   },
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
@@ -667,7 +758,6 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
-      vim.keymap.set('n', '<leader>bd', ':bd<CR>', { desc = '[D]elete current Buffer' })
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
         -- You can pass additional configuration to Telescope to change the theme, layout, etc.
