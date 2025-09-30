@@ -12,6 +12,7 @@ require('lspconfig').eslint.setup {
     run = 'manual',
   },
 }
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -153,6 +154,10 @@ vim.api.nvim_create_autocmd('TextYankPost', {
     vim.highlight.on_yank()
   end,
 })
+
+vim.api.nvim_create_user_command('OpenChanged', function()
+  require('custom.plugins').open_changed()
+end, { nargs = 0 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -323,6 +328,15 @@ require('lazy').setup({
     },
   },
   {
+    'MeanderingProgrammer/render-markdown.nvim',
+    dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-mini/mini.nvim' }, -- if you use the mini.nvim suite
+    -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-mini/mini.icons' }, -- if you use standalone mini plugins
+    -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' }, -- if you prefer nvim-web-devicons
+    ---@module 'render-markdown'
+    ---@type render.md.UserConfig
+    opts = {},
+  },
+  {
     'f-person/git-blame.nvim',
     -- load the plugin at startup
     event = 'VeryLazy',
@@ -397,6 +411,7 @@ require('lazy').setup({
       }
       -- Set up buttons for quick commands.
       dashboard.section.buttons.val = {
+        dashboard.button('o', ' ' .. ' Open changed git files', ':OpenChanged <CR>'),
         dashboard.button('f', ' ' .. ' Find file', ':Telescope find_files <CR>'),
         dashboard.button('n', ' ' .. ' New file', ':ene <BAR> startinsert <CR>'),
         dashboard.button('r', ' ' .. ' Recent files', ':Telescope oldfiles <CR>'),
@@ -409,6 +424,15 @@ require('lazy').setup({
       dashboard.opts.opts.noautocmd = true
 
       return dashboard.opts
+    end,
+  },
+  {
+    'nvim-tree/nvim-web-devicons',
+    config = function()
+      require('nvim-web-devicons').setup {
+        -- Your setup options here, if any.
+        -- For default options, you can leave this empty.
+      }
     end,
   },
   {
@@ -454,6 +478,7 @@ require('lazy').setup({
     keys = {
       { '<leader>gdo', ':DiffviewOpen<CR>', desc = '[G]it [D]iff [O]pen' },
       { '<leader>gdc', ':DiffviewClose<CR>', desc = '[G]it [D]iff [C]lose' },
+      { '<leader>gdr', ':DiffviewRefresh<CR>', desc = '[G]it [D]iff [R]efresh' },
     },
     config = function()
       -- optional config
@@ -701,7 +726,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons' },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -1098,7 +1123,13 @@ require('lazy').setup({
       },
     },
   },
-
+  {
+    'windwp/nvim-autopairs',
+    event = 'InsertEnter',
+    config = true,
+    -- use opts = {} for passing setup options
+    -- this is equivalent to setup({}) function
+  },
   { -- Autocompletion
     'hrsh7th/nvim-cmp',
     event = 'InsertEnter',
@@ -1119,12 +1150,16 @@ require('lazy').setup({
           -- `friendly-snippets` contains a variety of premade snippets.
           --    See the README about individual language/framework/plugin snippets:
           --    https://github.com/rafamadriz/friendly-snippets
-          -- {
-          --   'rafamadriz/friendly-snippets',
-          --   config = function()
-          --     require('luasnip.loaders.from_vscode').lazy_load()
-          --   end,
-          -- },
+          {
+            'rafamadriz/friendly-snippets',
+            config = function()
+              local luasnip = require 'luasnip'
+              luasnip.filetype_extend('typescript', { 'javascript' })
+              luasnip.filetype_extend('typescript', { 'jsdoc' })
+              luasnip.filetype_extend('typescript', { 'tsdoc' })
+              require('luasnip.loaders.from_vscode').lazy_load()
+            end,
+          },
         },
       },
       'saadparwaiz1/cmp_luasnip',
@@ -1178,7 +1213,7 @@ require('lazy').setup({
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
           --  completions whenever it has completion options available.
-          ['<C-Space>'] = cmp.mapping.complete {},
+          ['<C-s>'] = cmp.mapping.complete {},
 
           -- Think of <c-l> as moving to the right of your snippet expansion.
           --  So if you have a snippet that's like:
@@ -1259,7 +1294,7 @@ require('lazy').setup({
       -- This will call setup with the `opts` table above
       require('tokyonight').setup(opts)
       -- Load the colorscheme
-      vim.cmd.colorscheme 'tokyonight-storm'
+      vim.cmd.colorscheme 'tokyonight-moon'
     end,
   },
 
