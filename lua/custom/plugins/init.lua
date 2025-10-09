@@ -18,7 +18,20 @@ local function fname(f)
   return vim.fn.fnameescape(f)
 end
 
-local function changed_files()
+local function resolve_ref(ref)
+  local ok = syslist { 'git', 'rev-parse', '--verify', '--quiet', ref }
+  if ok[1] and ok[1] ~= '' then
+    return ref
+  end
+  local origin_ref = 'origin/' .. ref
+  local ok2 = syslist { 'git', 'rev-parse', '--verify', '--quiet', origin_ref }
+  if ok2[1] and ok2[1] ~= '' then
+    return origin_ref
+  end
+  return nil
+end
+
+local function changed_files(ref)
   local root = git_root()
   if not root or root == '' then
     vim.notify('Not inside a Git repo.', vim.log.levels.ERROR)
@@ -26,18 +39,34 @@ local function changed_files()
   end
 
   local files = {}
+  local args
 
-  -- Unstaged changes
-  for _, f in ipairs(syslist { 'git', 'diff', '--name-only' }) do
+  if ref then
+    local base = resolve_ref(ref)
+    if not base then
+      vim.notify('Cannot resolve ref "' .. ref .. '" or "origin/' .. ref .. '".', vim.log.levels.ERROR)
+      return {}
+    end
+    args = { 'git', 'diff', '--name-only', base }
+  else
+    args = { 'git', 'diff', '--name-only' }
+  end
+
+  -- Changed (vs ref or local unstaged)
+  for _, f in ipairs(syslist(args)) do
     table.insert(files, f)
   end
 
-  -- Untracked files
+  -- Untracked
   for _, f in ipairs(syslist { 'git', 'ls-files', '--others', '--exclude-standard' }) do
     table.insert(files, f)
   end
 
-  -- Absolutize, filter unreadable
+  for _, f in ipairs(syslist { 'git', 'diff', '--name-only', '--cached' }) do
+    table.insert(files, f)
+  end
+
+  -- Absolutize & filter unreadable
   local ok = {}
   for _, rel in ipairs(files) do
     if rel ~= '' then
@@ -55,18 +84,15 @@ local function open(files)
     vim.notify('No changed files.', vim.log.levels.INFO)
     return
   end
-
-  -- Add all as *listed* buffers
   for _, f in ipairs(files) do
     vim.cmd('badd ' .. fname(f))
   end
-
-  -- Jump to the first
   vim.cmd('buffer ' .. fname(files[1]))
 end
 
-CustomPlugins.open_changed = function(_)
-  open(changed_files())
+-- Open local changed files
+CustomPlugins.open_changed = function(_, ref)
+  open(changed_files(ref))
 end
 
-return CustomPlugins
+return CustomPlugi

@@ -20,7 +20,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -98,11 +98,14 @@ vim.keymap.set({ 'n', 'x' }, '<M-u>', '10k')
 vim.keymap.set({ 'n', 'x' }, '<M-d>', '10j')
 -- Delete buffer without closing window
 vim.keymap.set('n', '<leader>bd', ':bp | vsp | bn | bd<CR>', { noremap = true, silent = true })
-vim.keymap.set('n', '<leader>bD', ':%bd<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>bD', ':%bd | Alpha<CR>', { noremap = true, silent = true })
+
+vim.keymap.set('n', '<leader>bl', ':BufferLineMoveNext<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>bh', ':BufferLineMovePrev<CR>', { noremap = true, silent = true })
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
-
+vim.api.nvim_set_hl(0, 'MyExplorerText', { fg = '#191b28', bg = '#49567a', bold = true })
 -- Move macro recording to <leader>m
 vim.keymap.set('n', '<leader>m', 'q', { noremap = true })
 
@@ -155,9 +158,10 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
-vim.api.nvim_create_user_command('OpenChanged', function()
-  require('custom.plugins').open_changed()
-end, { nargs = 0 })
+vim.api.nvim_create_user_command('OpenChanged', function(opts)
+  local ref = opts.args ~= '' and opts.args or nil
+  require('custom.plugins').open_changed(ref)
+end, { nargs = '?' })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -412,6 +416,7 @@ require('lazy').setup({
       -- Set up buttons for quick commands.
       dashboard.section.buttons.val = {
         dashboard.button('o', ' ' .. ' Open changed git files', ':OpenChanged <CR>'),
+        dashboard.button('d', ' ' .. ' Open changed git files', ':OpenChanged develop<CR>'),
         dashboard.button('f', ' ' .. ' Find file', ':Telescope find_files <CR>'),
         dashboard.button('n', ' ' .. ' New file', ':ene <BAR> startinsert <CR>'),
         dashboard.button('r', ' ' .. ' Recent files', ':Telescope oldfiles <CR>'),
@@ -450,6 +455,7 @@ require('lazy').setup({
         view = {
           width = 40,
           adaptive_size = true,
+          centralize_selection = true,
         },
       }
 
@@ -495,14 +501,18 @@ require('lazy').setup({
         local bufferline = require 'bufferline'
         bufferline.setup {
           options = {
-            style_preset = {
-              bufferline.style_preset.no_italic,
-              bufferline.style_preset.no_bold,
-              -- bufferline.style_preset.minimal,
-            },
             color_icons = true,
             show_buffer_icons = true,
             separator_style = 'slant',
+            diagnostics = 'nvim_lsp',
+            offsets = {
+              {
+                filetype = 'NvimTree',
+                text = 'File Explorer',
+                highlight = 'MyExplorerText',
+                separator = true, -- use a "true" to enable the default, or set your own character
+              },
+            },
             hover = {
               enabled = true,
               delay = 200,
@@ -1119,7 +1129,7 @@ require('lazy').setup({
         -- python = { "isort", "black" },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
@@ -1276,17 +1286,21 @@ require('lazy').setup({
         }
         -- 3. Make all separators white to blend them into the background
         hl.BufferLineSeparator = {
-          bg = '#1C1E2B',
+          bg = '#191b28',
           fg = '#49567a',
         }
         hl.BufferLineSeparatorVisible = {
-          bg = '#222435',
+          bg = '#1f2031',
           fg = '#49567a',
         }
         -- This one styles the separator next to the *selected* tab
         hl.BufferLineSeparatorSelected = {
           bg = c.bg,
           fg = '#49567a',
+        }
+        hl.BufferLineOffsetSeparator = {
+          fg = '#191b28',
+          bg = '#49567a',
         }
       end,
     },
@@ -1329,7 +1343,31 @@ require('lazy').setup({
       --  and try some other statusline plugin
       local statusline = require 'mini.statusline'
       -- set use_icons to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
+      statusline.setup {
+        use_icons = vim.g.have_nerd_font,
+        content = {
+          active = function()
+            local mode, mode_hl = MiniStatusline.section_mode { trunc_width = 120 }
+            local diff = MiniStatusline.section_diff { trunc_width = 75 }
+            local diagnostics = MiniStatusline.section_diagnostics { trunc_width = 75 }
+            local lsp = MiniStatusline.section_lsp { trunc_width = 75 }
+            local filename = MiniStatusline.section_filename { trunc_width = 140 }
+            local fileinfo = MiniStatusline.section_fileinfo { trunc_width = 120 }
+            local location = MiniStatusline.section_location { trunc_width = 75 }
+            local search = MiniStatusline.section_searchcount { trunc_width = 75 }
+
+            return MiniStatusline.combine_groups {
+              { hl = mode_hl, strings = { mode } },
+              { hl = 'MiniStatuslineDevinfo', strings = { diff, diagnostics, lsp } },
+              '%<', -- Mark general truncate point
+              { hl = 'MiniStatuslineFilename', strings = { filename } },
+              '%=', -- End left alignment
+              { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },
+              { hl = mode_hl, strings = { search, location } },
+            }
+          end,
+        },
+      }
 
       -- You can configure sections in the statusline by overriding their
       -- default behavior. For example, here we set the section for
