@@ -62,6 +62,7 @@ local function changed_files(ref)
     table.insert(files, f)
   end
 
+  -- Local staged
   for _, f in ipairs(syslist { 'git', 'diff', '--name-only', '--cached' }) do
     table.insert(files, f)
   end
@@ -91,8 +92,8 @@ local function open(files)
 end
 
 -- Open local changed files
-CustomPlugins.open_changed = function(_, ref)
+CustomPlugins.open_changed = function(ref)
   open(changed_files(ref))
 end
 
-return CustomPlugi
+return CustomPlugins
