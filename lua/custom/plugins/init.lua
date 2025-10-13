@@ -95,4 +95,4 @@ CustomPlugins.open_changed = function(_, ref)
   open(changed_files(ref))
 end
 
-return CustomPlugi
+return CustomPlugins

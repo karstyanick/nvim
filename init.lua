@@ -76,6 +76,11 @@ vim.opt.splitbelow = true
 vim.opt.list = true
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
+vim.opt.expandtab = true
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 4
+
 -- Preview substitutions live, as you type!
 vim.opt.inccommand = 'split'
 
@@ -242,7 +247,7 @@ require('lazy').setup({
       auto_attach = true,
       attach_to_untracked = false,
       current_line_blame = false, -- Toggle with `:Gitsigns toggle_current_line_blame`
-      current_line_blame_opts = {
+      crrent_line_blame_opts = {
         virt_text = true,
         virt_text_pos = 'eol', -- 'eol' | 'overlay' | 'right_align'
         delay = 1000,
@@ -416,7 +421,7 @@ require('lazy').setup({
       -- Set up buttons for quick commands.
       dashboard.section.buttons.val = {
         dashboard.button('o', ' ' .. ' Open changed git files', ':OpenChanged <CR>'),
-        dashboard.button('d', ' ' .. ' Open changed git files', ':OpenChanged develop<CR>'),
+        dashboard.button('d', ' ' .. ' Open changed git files', ':OpenChanged dev<CR>'),
         dashboard.button('f', ' ' .. ' Find file', ':Telescope find_files <CR>'),
         dashboard.button('n', ' ' .. ' New file', ':ene <BAR> startinsert <CR>'),
         dashboard.button('r', ' ' .. ' Recent files', ':Telescope oldfiles <CR>'),
@@ -1276,7 +1281,7 @@ require('lazy').setup({
         sidebars = 'transparent',
         floats = 'transparent',
       },
-      -- transparent = true,
+      transparent = true,
 
       -- Your on_highlights function now lives with the other options
       on_highlights = function(hl, c)
@@ -1286,11 +1291,11 @@ require('lazy').setup({
         }
         -- 3. Make all separators white to blend them into the background
         hl.BufferLineSeparator = {
-          bg = '#191b28',
+          bg = '#13141c',
           fg = '#49567a',
         }
         hl.BufferLineSeparatorVisible = {
-          bg = '#1f2031',
+          bg = '#171822',
           fg = '#49567a',
         }
         -- This one styles the separator next to the *selected* tab
@@ -1299,7 +1304,7 @@ require('lazy').setup({
           fg = '#49567a',
         }
         hl.BufferLineOffsetSeparator = {
-          fg = '#191b28',
+          fg = '#13141c',
           bg = '#49567a',
         }
       end,
@@ -1308,7 +1313,7 @@ require('lazy').setup({
       -- This will call setup with the `opts` table above
       require('tokyonight').setup(opts)
       -- Load the colorscheme
-      vim.cmd.colorscheme 'tokyonight-moon'
+      vim.cmd.colorscheme 'tokyonight-night'
     end,
   },
 
