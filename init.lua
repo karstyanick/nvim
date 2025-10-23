@@ -110,7 +110,6 @@ vim.keymap.set('n', '<leader>bh', ':BufferLineMovePrev<CR>', { noremap = true, s
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
-vim.api.nvim_set_hl(0, 'MyExplorerText', { fg = '#191b28', bg = '#49567a', bold = true })
 -- Move macro recording to <leader>m
 vim.keymap.set('n', '<leader>m', 'q', { noremap = true })
 
@@ -167,6 +166,57 @@ vim.api.nvim_create_user_command('OpenChanged', function(opts)
   local ref = opts.args ~= '' and opts.args or nil
   require('custom.plugins').open_changed(ref)
 end, { nargs = '?' })
+
+-- Manual command to fix transparency if something overrides it
+vim.api.nvim_create_user_command('TransparencyFix', function()
+  -- The key: Clear TabLine backgrounds (bufferline's fallback)
+  vim.api.nvim_set_hl(0, 'TabLine', { bg = 'NONE', ctermbg = 'NONE' })
+  vim.api.nvim_set_hl(0, 'TabLineFill', { bg = 'NONE', ctermbg = 'NONE' })
+  vim.api.nvim_set_hl(0, 'TabLineSel', { bg = 'NONE', ctermbg = 'NONE' })
+
+  -- Also clear base backgrounds
+  vim.api.nvim_set_hl(0, 'Normal', { bg = 'NONE', ctermbg = 'NONE' })
+  vim.api.nvim_set_hl(0, 'NormalNC', { bg = 'NONE', ctermbg = 'NONE' })
+  vim.api.nvim_set_hl(0, 'StatusLine', { bg = 'NONE', ctermbg = 'NONE' })
+  vim.api.nvim_set_hl(0, 'StatusLineNC', { bg = 'NONE', ctermbg = 'NONE' })
+
+  -- Fix Telescope colors to jade/green
+  local green = '#8fb573'
+  local grey = '#5b5e5a'
+  vim.api.nvim_set_hl(0, 'TelescopePromptPrefix', { fg = green, bold = true })
+  vim.api.nvim_set_hl(0, 'TelescopeMatching', { fg = green, bold = true })
+  vim.api.nvim_set_hl(0, 'TelescopeSelection', { fg = green, bold = true })
+  vim.api.nvim_set_hl(0, 'TelescopePromptBorder', { fg = grey, bg = 'NONE' })
+  vim.api.nvim_set_hl(0, 'TelescopeBorder', { fg = grey, bg = 'NONE' })
+  vim.api.nvim_set_hl(0, 'TelescopeResultsBorder', { fg = grey, bg = 'NONE' })
+  vim.api.nvim_set_hl(0, 'TelescopePreviewBorder', { fg = grey, bg = 'NONE' })
+
+  print 'Transparency and colors fixed!'
+end, {})
+
+-- Ensure TabLine transparency and Telescope jade colors
+vim.api.nvim_create_autocmd('ColorScheme', {
+  pattern = '*',
+  callback = function()
+    -- TabLine transparency for bufferline
+    vim.api.nvim_set_hl(0, 'TabLine', { bg = 'NONE' })
+    vim.api.nvim_set_hl(0, 'TabLineFill', { bg = 'NONE' })
+    vim.api.nvim_set_hl(0, 'TabLineSel', { bg = 'NONE' })
+    
+    -- Telescope: Force jade/green colors (override any blue/purple)
+    vim.schedule(function()
+      local green = '#8fb573'
+      local grey = '#5b5e5a'
+      vim.api.nvim_set_hl(0, 'TelescopePromptPrefix', { fg = green, bold = true })
+      vim.api.nvim_set_hl(0, 'TelescopeMatching', { fg = green, bold = true })
+      vim.api.nvim_set_hl(0, 'TelescopeSelection', { fg = green, bold = true })
+      vim.api.nvim_set_hl(0, 'TelescopePromptBorder', { fg = grey, bg = 'NONE' })
+      vim.api.nvim_set_hl(0, 'TelescopeBorder', { fg = grey, bg = 'NONE' })
+      vim.api.nvim_set_hl(0, 'TelescopeResultsBorder', { fg = grey, bg = 'NONE' })
+      vim.api.nvim_set_hl(0, 'TelescopePreviewBorder', { fg = grey, bg = 'NONE' })
+    end)
+  end,
+})
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -500,28 +550,87 @@ require('lazy').setup({
     {
       'akinsho/bufferline.nvim',
       version = '*',
-      dependencies = { 'nvim-tree/nvim-web-devicons' },
+      dependencies = { 'nvim-tree/nvim-web-devicons', 'ribru17/bamboo.nvim' },
       config = function()
         vim.opt.termguicolors = true
         local bufferline = require 'bufferline'
+        -- Bamboo color palette for bufferline
+        local bamboo_colors = {
+          grey = '#7e8294',
+          green = '#8fb573', -- Bamboo's jade/green color (not cyan/blue)
+          fg = '#c8d3ba',
+          fg_dark = '#a3b195',
+          comment = '#5b6268',
+        }
+        -- Setup bufferline with Osaka Jade (Bamboo) style
         bufferline.setup {
           options = {
             color_icons = true,
             show_buffer_icons = true,
-            separator_style = 'slant',
+            separator_style = { '│', '│' }, -- Straight vertical separators
             diagnostics = 'nvim_lsp',
+            indicator = {
+              style = 'icon',
+              icon = '▎', -- Left bar indicator in jade/aqua
+            },
             offsets = {
               {
                 filetype = 'NvimTree',
                 text = 'File Explorer',
                 highlight = 'MyExplorerText',
-                separator = true, -- use a "true" to enable the default, or set your own character
+                separator = true,
               },
             },
             hover = {
               enabled = true,
               delay = 200,
               reveal = { 'close' },
+            },
+            -- Add custom padding/spacing
+            name_formatter = function(buf)
+              return ' ' .. buf.name .. ' '
+            end,
+          },
+          highlights = {
+            -- Transparent backgrounds with bamboo colors
+            fill = {
+              bg = 'NONE',
+              fg = bamboo_colors.grey,
+            },
+            background = {
+              bg = 'NONE',
+              fg = bamboo_colors.comment,
+            },
+            buffer_visible = {
+              bg = 'NONE',
+              fg = bamboo_colors.fg_dark,
+            },
+            buffer_selected = {
+              bg = 'NONE',
+              fg = bamboo_colors.fg,
+              bold = true,
+            },
+            -- Subtle separators
+            separator = {
+              bg = 'NONE',
+              fg = bamboo_colors.comment,
+            },
+            separator_visible = {
+              bg = 'NONE',
+              fg = bamboo_colors.comment,
+            },
+            separator_selected = {
+              bg = 'NONE',
+              fg = bamboo_colors.comment,
+            },
+            -- Bamboo jade/green indicator
+            indicator_selected = {
+              bg = 'NONE',
+              fg = bamboo_colors.green,
+            },
+            indicator_visible = {
+              bg = 'NONE',
+              fg = 'NONE',
             },
           },
         }
@@ -1267,53 +1376,59 @@ require('lazy').setup({
     end,
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
+  { -- Osaka Jade theme using Bamboo colorscheme (like Omarchy)
+    'ribru17/bamboo.nvim',
+    lazy = false,
     priority = 1000, -- Make sure to load this before all the other start plugins.
-    opts = {
-      -- Put ALL your setup options here
-      styles = {
-        comments = { italic = false },
-        sidebars = 'transparent',
-        floats = 'transparent',
-      },
-      transparent = true,
+    config = function()
+      require('bamboo').setup {
+        -- Bamboo configuration with transparency
+        style = 'vulgaris', -- Default bamboo style with green/jade tones
+        transparent = true,
+        term_colors = true,
+        ending_tildes = false,
+        cmp_itemkind_reverse = false,
 
-      -- Your on_highlights function now lives with the other options
-      on_highlights = function(hl, c)
-        -- Override the background color for bufferline
-        hl.BufferLineFill = {
-          bg = '#49567a',
-        }
-        -- 3. Make all separators white to blend them into the background
-        hl.BufferLineSeparator = {
-          bg = '#13141c',
-          fg = '#49567a',
-        }
-        hl.BufferLineSeparatorVisible = {
-          bg = '#171822',
-          fg = '#49567a',
-        }
-        -- This one styles the separator next to the *selected* tab
-        hl.BufferLineSeparatorSelected = {
-          bg = c.bg,
-          fg = '#49567a',
-        }
-        hl.BufferLineOffsetSeparator = {
-          fg = '#13141c',
-          bg = '#49567a',
-        }
-      end,
-    },
-    config = function(_, opts)
-      -- This will call setup with the `opts` table above
-      require('tokyonight').setup(opts)
-      -- Load the colorscheme
-      vim.cmd.colorscheme 'tokyonight-night'
+        -- Code style
+        code_style = {
+          comments = { italic = false },
+          conditionals = { italic = false },
+          keywords = {},
+          functions = {},
+          namespaces = { italic = false },
+          parameters = { italic = false },
+          strings = {},
+          variables = {},
+        },
+
+        -- Custom highlights for UI elements
+        on_highlights = function(hl, c)
+          -- File Explorer jade accent
+          hl.MyExplorerText = { bg = 'NONE', fg = c.green, bold = true }
+          
+          -- Telescope: Use jade/green theme (no blue/purple!)
+          hl.TelescopeSelection = { bg = 'NONE', fg = c.green, bold = true }
+          hl.TelescopeSelectionCaret = { bg = 'NONE', fg = c.green }
+          hl.TelescopePromptPrefix = { bg = 'NONE', fg = c.green, bold = true }
+          hl.TelescopeMatching = { bg = 'NONE', fg = c.green, bold = true }
+          hl.TelescopeTitle = { bg = 'NONE', fg = c.green, bold = true }
+          hl.TelescopePromptTitle = { bg = 'NONE', fg = c.green, bold = true }
+          hl.TelescopeResultsTitle = { bg = 'NONE', fg = c.green, bold = true }
+          hl.TelescopePreviewTitle = { bg = 'NONE', fg = c.green, bold = true }
+          -- Borders: subtle grey (not blue/purple!) - Force all border types
+          hl.TelescopeBorder = { bg = 'NONE', fg = c.grey }
+          hl.TelescopePromptBorder = { bg = 'NONE', fg = c.grey }
+          hl.TelescopeResultsBorder = { bg = 'NONE', fg = c.grey }
+          hl.TelescopePreviewBorder = { bg = 'NONE', fg = c.grey }
+          hl.TelescopePromptNormal = { bg = 'NONE', fg = c.fg }
+          hl.TelescopeResultsNormal = { bg = 'NONE', fg = c.fg }
+          hl.TelescopePreviewNormal = { bg = 'NONE', fg = c.fg }
+          hl.TelescopeNormal = { bg = 'NONE', fg = c.fg }
+        end,
+      }
+
+      -- Load the bamboo colorscheme
+      require('bamboo').load()
     end,
   },
 

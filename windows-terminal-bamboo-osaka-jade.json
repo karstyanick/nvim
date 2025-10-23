@@ -1,0 +1,71 @@
+{
+    // Windows Terminal settings for Bamboo Osaka Jade theme (like Omarchy)
+    // Add this to your Windows Terminal settings.json
+    
+    "profiles": {
+        "list": [
+            {
+                "guid": "{YOUR-WSL-GUID-HERE}",
+                "name": "Ubuntu",
+                "commandline": "wsl.exe",
+                
+                // ===== TRANSPARENCY SETTINGS =====
+                "opacity": 90,
+                "useAcrylic": true,
+                "acrylicOpacity": 0.90,
+                
+                // Bamboo/Osaka Jade background
+                "background": "#202020",  // Bamboo dark base
+                "foreground": "#c8d3ba",  // Bamboo foreground
+                
+                // Color scheme
+                "colorScheme": "Bamboo Osaka Jade",
+                
+                // Optional settings
+                "padding": "8, 8, 8, 8",
+                "font": {
+                    "face": "JetBrainsMono Nerd Font",
+                    "size": 11
+                },
+                "cursorShape": "bar",
+                "cursorColor": "#83c092"  // Bamboo aqua/jade
+            }
+        ]
+    },
+    
+    // ===== BAMBOO OSAKA JADE COLOR SCHEME =====
+    "schemes": [
+        {
+            "name": "Bamboo Osaka Jade",
+            "background": "#202020",
+            "foreground": "#c8d3ba",
+            
+            // Normal colors with jade/green accents
+            "black": "#2c2d30",
+            "blue": "#83c092",          // ← Bamboo aqua/jade (main accent!)
+            "cyan": "#7abda7",
+            "green": "#98bc6d",
+            "purple": "#b28fd8",
+            "red": "#ea6c73",
+            "white": "#c8d3ba",
+            "yellow": "#e5c17c",
+            
+            // Bright colors
+            "brightBlack": "#494d54",
+            "brightBlue": "#83c092",    // ← Jade accent
+            "brightCyan": "#7abda7",
+            "brightGreen": "#98bc6d",
+            "brightPurple": "#b28fd8",
+            "brightRed": "#ea6c73",
+            "brightWhite": "#c8d3ba",
+            "brightYellow": "#e5c17c",
+            
+            // Selection colors
+            "selectionBackground": "#3a4754",
+            "cursorColor": "#83c092"    // ← Jade cursor
+        }
+    ]
+}
+
+
+
