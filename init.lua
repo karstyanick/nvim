@@ -4,14 +4,12 @@ vim.lsp.enable 'svelte'
 vim.lsp.enable 'eslint'
 vim.lsp.enable 'ts_ls'
 
-require('lspconfig').eslint.setup {
+vim.lsp.config('eslint', {
   settings = {
-    codeActionOnSave = {
-      enable = false,
-    },
+    codeActionOnSave = { enable = false },
     run = 'manual',
   },
-}
+})
 
 -- Set <space> as the leader key
 -- See `:help mapleader`
@@ -114,7 +112,7 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '<leader>m', 'q', { noremap = true })
 
 -- Then remap q to move back a word
-vim.keymap.set('n', 'q', 'b', { noremap = true })
+vim.keymap.set({ 'n', 'x' }, 'q', 'b', { noremap = true })
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
@@ -202,7 +200,7 @@ vim.api.nvim_create_autocmd('ColorScheme', {
     vim.api.nvim_set_hl(0, 'TabLine', { bg = 'NONE' })
     vim.api.nvim_set_hl(0, 'TabLineFill', { bg = 'NONE' })
     vim.api.nvim_set_hl(0, 'TabLineSel', { bg = 'NONE' })
-    
+
     -- Telescope: Force jade/green colors (override any blue/purple)
     vim.schedule(function()
       local green = '#8fb573'
@@ -297,14 +295,6 @@ require('lazy').setup({
       auto_attach = true,
       attach_to_untracked = false,
       current_line_blame = false, -- Toggle with `:Gitsigns toggle_current_line_blame`
-      crrent_line_blame_opts = {
-        virt_text = true,
-        virt_text_pos = 'eol', -- 'eol' | 'overlay' | 'right_align'
-        delay = 1000,
-        ignore_whitespace = false,
-        virt_text_priority = 100,
-        use_focus = true,
-      },
       current_line_blame_formatter = '<author>, <author_time:%R> - <summary>',
       sign_priority = 6,
       update_debounce = 100,
@@ -1152,9 +1142,7 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-        --
-
+        ts_ls = {},
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -1170,7 +1158,6 @@ require('lazy').setup({
           },
         },
       }
-
       -- Ensure the servers and tools above are installed
       --
       -- To check the current status of installed tools and/or manually install
@@ -1244,6 +1231,10 @@ require('lazy').setup({
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         javascript = { 'prettierd', 'prettier', stop_after_first = true },
+        typescript = { 'prettierd', 'prettier', stop_after_first = true },
+        javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+        json = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
@@ -1375,63 +1366,17 @@ require('lazy').setup({
       }
     end,
   },
-
-  { -- Osaka Jade theme using Bamboo colorscheme (like Omarchy)
-    'ribru17/bamboo.nvim',
-    lazy = false,
-    priority = 1000, -- Make sure to load this before all the other start plugins.
-    config = function()
-      require('bamboo').setup {
-        -- Bamboo configuration with transparency
-        style = 'vulgaris', -- Default bamboo style with green/jade tones
-        transparent = true,
-        term_colors = true,
-        ending_tildes = false,
-        cmp_itemkind_reverse = false,
-
-        -- Code style
-        code_style = {
-          comments = { italic = false },
-          conditionals = { italic = false },
-          keywords = {},
-          functions = {},
-          namespaces = { italic = false },
-          parameters = { italic = false },
-          strings = {},
-          variables = {},
-        },
-
-        -- Custom highlights for UI elements
-        on_highlights = function(hl, c)
-          -- File Explorer jade accent
-          hl.MyExplorerText = { bg = 'NONE', fg = c.green, bold = true }
-          
-          -- Telescope: Use jade/green theme (no blue/purple!)
-          hl.TelescopeSelection = { bg = 'NONE', fg = c.green, bold = true }
-          hl.TelescopeSelectionCaret = { bg = 'NONE', fg = c.green }
-          hl.TelescopePromptPrefix = { bg = 'NONE', fg = c.green, bold = true }
-          hl.TelescopeMatching = { bg = 'NONE', fg = c.green, bold = true }
-          hl.TelescopeTitle = { bg = 'NONE', fg = c.green, bold = true }
-          hl.TelescopePromptTitle = { bg = 'NONE', fg = c.green, bold = true }
-          hl.TelescopeResultsTitle = { bg = 'NONE', fg = c.green, bold = true }
-          hl.TelescopePreviewTitle = { bg = 'NONE', fg = c.green, bold = true }
-          -- Borders: subtle grey (not blue/purple!) - Force all border types
-          hl.TelescopeBorder = { bg = 'NONE', fg = c.grey }
-          hl.TelescopePromptBorder = { bg = 'NONE', fg = c.grey }
-          hl.TelescopeResultsBorder = { bg = 'NONE', fg = c.grey }
-          hl.TelescopePreviewBorder = { bg = 'NONE', fg = c.grey }
-          hl.TelescopePromptNormal = { bg = 'NONE', fg = c.fg }
-          hl.TelescopeResultsNormal = { bg = 'NONE', fg = c.fg }
-          hl.TelescopePreviewNormal = { bg = 'NONE', fg = c.fg }
-          hl.TelescopeNormal = { bg = 'NONE', fg = c.fg }
-        end,
-      }
-
-      -- Load the bamboo colorscheme
-      require('bamboo').load()
-    end,
-  },
-
+  { 'folke/tokyonight.nvim', lazy = true },
+  { 'catppuccin/nvim', name = 'catppuccin', lazy = true },
+  { 'neanias/everforest', lazy = true },
+  { 'ellisonleao/gruvbox.nvim', lazy = true },
+  { 'rebelot/kanagawa.nvim', lazy = true },
+  { 'shaunsingh/nord.nvim', lazy = true },
+  { 'EdenEast/nightfox.nvim', lazy = true },
+  { 'tahayvr/matteblack.nvim', lazy = true },
+  { 'rose-pine/neovim', name = 'rose-pine', lazy = true },
+  { 'ribru17/bamboo.nvim', lazy = true, opts = { transparent = true } },
+  { 'loctvl842/monokai-pro.nvim', lazy = true, opts = { filter = 'ristretto' } },
   -- Highlight todo, notes, etc in comments
   {
     'folke/todo-comments.nvim',
@@ -1603,6 +1548,16 @@ require('lazy').setup({
     },
   },
 })
+
+-- Somewhere after lazy.nvim is set up:
+local om = require 'omarchy.theme'
+om.apply_now()
+om.start_watching()
+
+-- Optional command to re-run manually:
+vim.api.nvim_create_user_command('OmarchyThemeReload', function()
+  om.apply_now()
+end, {})
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
