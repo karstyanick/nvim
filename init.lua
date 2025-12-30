@@ -1,18 +1,3 @@
-vim.lsp.enable 'pyright'
-vim.lsp.enable 'gopls'
-vim.lsp.enable 'svelte'
-vim.lsp.enable 'eslint'
-vim.lsp.enable 'ts_ls'
-
-require('lspconfig').eslint.setup {
-  settings = {
-    codeActionOnSave = {
-      enable = false,
-    },
-    run = 'manual',
-  },
-}
-
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -98,10 +83,39 @@ vim.keymap.set({ 'n', 'x' }, '<M-u>', '10k')
 vim.keymap.set({ 'n', 'x' }, '<M-d>', '10j')
 -- Delete buffer without closing window
 vim.keymap.set('n', '<leader>bd', ':bp | vsp | bn | bd<CR>', { noremap = true, silent = true })
-vim.keymap.set('n', '<leader>bD', ':%bd | Alpha<CR>', { noremap = true, silent = true })
+-- vim.keymap.set('n', '<leader>bD', ':%bd | Alpha<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>bD', function()
+  -- 1. Open Alpha FIRST.
+  -- This ensures the window remains open and focus is safe.
+  vim.cmd 'Alpha'
+
+  -- 2. Get the buffer ID of the newly opened Alpha dashboard
+  local alpha_buf = vim.api.nvim_get_current_buf()
+
+  -- 3. Get a list of all buffers
+  local bufs = vim.api.nvim_list_bufs()
+
+  for _, bufnr in ipairs(bufs) do
+    -- Check if valid, NOT NvimTree, and NOT the current Alpha buffer
+    local is_valid = vim.api.nvim_buf_is_valid(bufnr)
+    local is_not_tree = vim.bo[bufnr].filetype ~= 'NvimTree'
+    local is_not_alpha = bufnr ~= alpha_buf
+
+    if is_valid and is_not_tree and is_not_alpha then
+      -- wrapped in pcall to prevent errors if a buffer refuses to close
+      pcall(vim.api.nvim_buf_delete, bufnr, { force = false })
+    end
+  end
+
+  -- 4. Collapse the tree
+  require('nvim-tree.api').tree.collapse_all { keep_buffers = false }
+end, { noremap = true, silent = true })
 
 vim.keymap.set('n', '<leader>bl', ':BufferLineMoveNext<CR>', { noremap = true, silent = true })
 vim.keymap.set('n', '<leader>bh', ':BufferLineMovePrev<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>b<Tab>', ':BufferLineCycleNext<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>b<S-Tab>', ':BufferLineCyclePrev<CR>', { noremap = true, silent = true })
+
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
@@ -110,7 +124,7 @@ vim.api.nvim_set_hl(0, 'MyExplorerText', { fg = '#191b28', bg = '#49567a', bold 
 vim.keymap.set('n', '<leader>m', 'q', { noremap = true })
 
 -- Then remap q to move back a word
-vim.keymap.set('n', 'q', 'b', { noremap = true })
+vim.keymap.set({ 'n', 'x' }, 'q', 'b', { noremap = true })
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
@@ -338,7 +352,7 @@ require('lazy').setup({
     -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' }, -- if you prefer nvim-web-devicons
     ---@module 'render-markdown'
     ---@type render.md.UserConfig
-    opts = {},
+    opts = { anti_conceal = { enabled = false } },
   },
   {
     'f-person/git-blame.nvim',
@@ -461,6 +475,10 @@ require('lazy').setup({
 
       vim.keymap.set('n', '<leader>tt', function()
         require('nvim-tree.api').tree.toggle { focus = true, find_file = true }
+      end, { desc = 'Toggle NvimTree' })
+
+      vim.keymap.set('n', '<leader>tc', function()
+        require('nvim-tree.api').tree.collapse_all { keep_buffers = false }
       end, { desc = 'Toggle NvimTree' })
 
       local api = require 'nvim-tree.api'
@@ -783,6 +801,8 @@ require('lazy').setup({
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
+      local actions = require 'telescope.actions'
+      local action_state = require 'telescope.actions.state'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
       vim.keymap.set('n', '<C-p>', builtin.find_files, { desc = '[S]earch [F]iles' })
@@ -812,9 +832,28 @@ require('lazy').setup({
       end, { desc = '[S]earch [/] in Open Files' })
 
       -- Shortcut for searching your Neovim configuration files
-      vim.keymap.set('n', '<leader>sn', function()
+      vim.keymap.set('n', '<leader>sc', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
-      end, { desc = '[S]earch [N]eovim files' })
+      end, { desc = '[S]earch [C]ongif files' })
+
+      vim.keymap.set('n', '<leader>sn', function()
+        builtin.find_files {
+          cwd = '/Users/yanickkarst/Notes',
+          attach_mappings = function(prompt_bufnr, map)
+            local open_in_vsplit = function()
+              local entry = action_state.get_selected_entry()
+              actions.close(prompt_bufnr)
+              vim.cmd('vsplit ' .. entry.path)
+            end
+
+            -- Override default <CR> behavior
+            map('i', '<CR>', open_in_vsplit)
+            map('n', '<CR>', open_in_vsplit)
+
+            return true
+          end,
+        }
+      end, { desc = '[S]earch [N]otes (open in vsplit)' })
     end,
   },
 
@@ -1018,6 +1057,16 @@ require('lazy').setup({
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
+      local global_node_modules = '/Users/yanickkarst/.nvm/versions/node/v20.18.2/lib/node_modules'
+      local cmd = {
+        'ngserver',
+        '--stdio',
+        '--tsProbeLocations',
+        global_node_modules,
+        '--ngProbeLocations',
+        global_node_modules .. '/@angular/language-server/bin',
+      }
+
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --
@@ -1027,20 +1076,21 @@ require('lazy').setup({
       --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
+      --
       local servers = {
         -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
+        gopls = {},
+        pyright = {},
+        svelte = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-        --
-
+        ts_ls = {},
+        angularls = {
+          cmd = cmd,
+        },
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -1053,6 +1103,14 @@ require('lazy').setup({
               -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
               -- diagnostics = { disable = { 'missing-fields' } },
             },
+          },
+        },
+        eslint = {
+          settings = {
+            codeActionOnSave = {
+              enable = false,
+            },
+            run = 'manual',
           },
         },
       }
@@ -1130,6 +1188,10 @@ require('lazy').setup({
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         javascript = { 'prettierd', 'prettier', stop_after_first = true },
+        json = { 'prettierd', 'prettier', stop_after_first = true },
+        html = { 'prettierd', 'prettier', stop_after_first = true },
+        typescript = { 'prettierd', 'prettier', stop_after_first = true },
+        htmlangular = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
@@ -1262,6 +1324,57 @@ require('lazy').setup({
     end,
   },
 
+  -- {
+  --   'ribru17/bamboo.nvim',
+  --   lazy = false,
+  --   priority = 1001,
+  --   config = function()
+  --     require('bamboo').setup {
+  --       -- Main options --
+  --       -- NOTE: to use the light theme, set `vim.o.background = 'light'`
+  --       style = 'vulgaris', -- Choose between 'vulgaris' (regular), 'multiplex' (greener), and 'light'
+  --       toggle_style_key = nil, -- Keybind to toggle theme style. Leave it nil to disable it, or set it to a string, e.g. "<leader>ts"
+  --       toggle_style_list = { 'vulgaris', 'multiplex', 'light' }, -- List of styles to toggle between
+  --       transparent = true, -- Show/hide background
+  --       dim_inactive = false, -- Dim inactive windows/buffers
+  --       term_colors = true, -- Change terminal color as per the selected theme style
+  --       ending_tildes = false, -- Show the end-of-buffer tildes. By default they are hidden
+  --       cmp_itemkind_reverse = false, -- reverse item kind highlights in cmp menu
+  --
+  --       -- Change code style ---
+  --       -- Options are anything that can be passed to the `vim.api.nvim_set_hl` table
+  --       -- You can also configure styles with a string, e.g. keywords = 'italic,bold'
+  --       code_style = {
+  --         comments = { italic = true },
+  --         conditionals = { italic = true },
+  --         keywords = {},
+  --         functions = {},
+  --         namespaces = { italic = true },
+  --         parameters = { italic = true },
+  --         strings = {},
+  --         variables = {},
+  --       },
+  --
+  --       -- Lualine options --
+  --       lualine = {
+  --         transparent = true, -- lualine center bar transparency
+  --       },
+  --
+  --       -- Custom Highlights --
+  --       colors = {}, -- Override default colors
+  --       highlights = {}, -- Override highlight groups
+  --
+  --       -- Plugins Config --
+  --       diagnostics = {
+  --         darker = false, -- darker colors for diagnostic
+  --         undercurl = true, -- use undercurl instead of underline for diagnostics
+  --         background = true, -- use background color for virtual text
+  --       },
+  --     }
+  --     require('bamboo').load()
+  --   end,
+  -- },
+
   { -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then
     -- change the command in the config to whatever the name of that colorscheme is.
@@ -1276,7 +1389,10 @@ require('lazy').setup({
         sidebars = 'transparent',
         floats = 'transparent',
       },
-      -- transparent = true,
+      -- on_colors = function(colors)
+      --   colors.bg_statusline = colors.none -- To check if its working try something like "#ff00ff" instead of colors.none
+      -- end,
+      transparent = true,
 
       -- Your on_highlights function now lives with the other options
       on_highlights = function(hl, c)
