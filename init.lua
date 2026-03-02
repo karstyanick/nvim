@@ -111,6 +111,38 @@ vim.keymap.set('n', '<leader>bD', function()
   require('nvim-tree.api').tree.collapse_all { keep_buffers = false }
 end, { noremap = true, silent = true })
 
+vim.keymap.set('n', '<leader>yp', function()
+  local path = vim.fn.expand '%:.'
+  vim.fn.setreg('+', path)
+  vim.notify('Copied path: ' .. path)
+end, { desc = 'Y[ank] relative file [P]ath' })
+
+vim.keymap.set('n', '<leader>yl', function()
+  local path = vim.fn.expand '%:.'
+  local line = vim.fn.line '.'
+  local result = path .. ':' .. line
+  vim.fn.setreg('+', result)
+  vim.notify('Copied path:line: ' .. result)
+end, { desc = 'Y[ank] relative file path + [L]ine' })
+
+vim.keymap.set('n', '<leader>yc', function()
+  local line = vim.fn.line '.'
+  local file = vim.fn.expand '%:.'
+  local blame = vim.fn.system('git blame -L ' .. line .. ',' .. line .. ' --porcelain -- ' .. vim.fn.shellescape(file))
+
+  local hash = blame:match '^(%x+)'
+  if not hash or hash:match '^0+$' then
+    vim.notify('No commit for this line (uncommitted change)', vim.log.levels.WARN)
+    return
+  end
+
+  local remote = vim.fn.trim(vim.fn.system 'git remote get-url origin')
+  local github_url = remote:gsub('git@github%.com:', 'https://github.com/'):gsub('%.git$', '')
+  local url = github_url .. '/commit/' .. hash
+
+  vim.fn.setreg('+', url)
+  vim.notify('Copied: ' .. url)
+end, { desc = 'Y[ank] [C]ommit URL' })
 vim.keymap.set('n', '<leader>bl', ':BufferLineMoveNext<CR>', { noremap = true, silent = true })
 vim.keymap.set('n', '<leader>bh', ':BufferLineMovePrev<CR>', { noremap = true, silent = true })
 vim.keymap.set('n', '<leader>b<Tab>', ':BufferLineCycleNext<CR>', { noremap = true, silent = true })
@@ -787,6 +819,14 @@ require('lazy').setup({
         --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
         --   },
         -- },
+        defaults = {
+          layout_strategy = 'vertical',
+          layout_config = {
+            prompt_position = 'bottom',
+            height = 0.95,
+            -- other defaults configuration here
+          },
+        },
         -- pickers = {}
         extensions = {
           ['ui-select'] = {
@@ -1497,7 +1537,6 @@ require('lazy').setup({
       --  Check out: https://github.com/echasnovski/mini.nvim
     end,
   },
-
   {
     'nvim-treesitter/nvim-treesitter-textobjects',
     dependencies = { 'nvim-treesitter/nvim-treesitter' },
